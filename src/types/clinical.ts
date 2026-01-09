@@ -5,7 +5,7 @@ export interface Patient {
   condition: string;
   lastSession: string;
   progress: number; // 0-100
-  status: 'active' | 'archived';
+  status: "active" | "archived";
 }
 export interface Session {
   id: string;
@@ -21,11 +21,12 @@ export interface PhonemeData {
   accuracy: number;
   count: number;
   nativeAvg: number;
-  category: 'Vowel' | 'Consonant' | 'Cluster';
+  category: "Vowel" | "Consonant" | "Cluster";
 }
 export interface TrendPoint {
   date: string;
   score: number;
+  wpm?: number;
   patientId?: string;
 }
 export interface ComparisonPoint {
