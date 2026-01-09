@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { TopBar } from "../components/TopBar";
 import { LanguageCard } from "../components/LanguageCard";
 import {
@@ -9,9 +9,29 @@ import {
   Heart,
   Sparkles,
   LogIn,
+  LogOut,
+  User as UserIcon,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useUser } from "../context/UserContext";
+
 export function Home() {
+  const { user, logout } = useUser();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  // Redirect to setup if no user
+  useEffect(() => {
+    if (!user) {
+      // Uncomment the line below to enforce user setup
+      // navigate('/setup');
+    }
+  }, [user, navigate]);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-primary/5 flex flex-col">
       <header className="w-full bg-white border-b border-gray-100 px-4 py-4 md:px-8">
@@ -36,13 +56,45 @@ export function Home() {
               Clarivo
             </span>
           </div>
-          <Link
-            to="/login"
-            className="flex items-center gap-2 text-primary font-medium hover:text-primary-dark transition-colors text-lg px-4 py-2"
-          >
-            <LogIn className="w-5 h-5" />
-            <span>Sign In</span>
-          </Link>
+          <div className="flex items-center gap-4">
+            {user ? (
+              <div className="flex items-center gap-3">
+                <div className="text-right hidden sm:block">
+                  <p className="text-sm font-semibold text-gray-900">
+                    {user.name}
+                  </p>
+                  <p className="text-xs text-gray-500">{user.email}</p>
+                </div>
+                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                  <UserIcon className="w-5 h-5 text-white" />
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors px-3 py-2"
+                  title="Logout"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span className="hidden md:inline">Logout</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/login"
+                  className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors px-3 py-2"
+                >
+                  <LogIn className="w-5 h-5" />
+                  <span>Login</span>
+                </Link>
+                <Link
+                  to="/setup"
+                  className="flex items-center gap-2 bg-primary text-white font-medium hover:bg-primary-dark transition-colors px-4 py-2 rounded-lg"
+                >
+                  <span>Sign Up</span>
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -52,7 +104,9 @@ export function Home() {
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-full border border-primary/20">
             <Sparkles className="w-4 h-4 text-primary" />
             <span className="text-sm font-semibold text-primary-dark">
-              Welcome back! Ready to practice today?
+              {user
+                ? `Welcome back, ${user.name.split(" ")[0]}!`
+                : "Welcome back! Ready to practice today?"}
             </span>
           </div>
         </div>

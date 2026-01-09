@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Logo } from '../components/Logo';
-import { Lock, Mail, ArrowRight } from 'lucide-react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Logo } from "../components/Logo";
+import { Lock, Mail, ArrowRight } from "lucide-react";
 export function PatientLogin() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -9,10 +9,11 @@ export function PatientLogin() {
     e.preventDefault();
     setLoading(true);
     setTimeout(() => {
-      navigate('/patient-dashboard');
+      navigate("/patient-dashboard");
     }, 1000);
   };
-  return <div className="min-h-screen bg-gradient-to-b from-background to-primary/5 flex flex-col items-center justify-center p-4">
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-background to-primary/5 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 md:p-10">
         <div className="flex justify-center mb-8">
           <Logo className="scale-125" />
@@ -32,7 +33,12 @@ export function PatientLogin() {
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
-              <input type="email" defaultValue="patient@clarivo.com" className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-base" required />
+              <input
+                type="email"
+                defaultValue="patient@clarivo.com"
+                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-base"
+                required
+              />
             </div>
           </div>
 
@@ -42,12 +48,21 @@ export function PatientLogin() {
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
-              <input type="password" defaultValue="password123" className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-base" required />
+              <input
+                type="password"
+                defaultValue="password123"
+                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-base"
+                required
+              />
             </div>
           </div>
 
-          <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 bg-primary text-white py-4 rounded-lg font-bold hover:bg-primary-dark transition-colors shadow-lg shadow-primary/20 text-lg">
-            {loading ? 'Signing in...' : 'Sign In'}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 bg-primary text-white py-4 rounded-lg font-bold hover:bg-primary-dark transition-colors shadow-lg shadow-primary/20 text-lg"
+          >
+            {loading ? "Signing in..." : "Sign In"}
             {!loading && <ArrowRight className="w-5 h-5" />}
           </button>
         </form>
@@ -57,9 +72,13 @@ export function PatientLogin() {
           your dashboard
         </div>
 
-        <button onClick={() => navigate('/')} className="w-full mt-4 text-sm text-gray-500 hover:text-gray-700 underline">
+        <button
+          onClick={() => navigate("/")}
+          className="w-full mt-4 text-sm text-gray-500 hover:text-gray-700 underline"
+        >
           Back to Home
         </button>
       </div>
-    </div>;
+    </div>
+  );
 }

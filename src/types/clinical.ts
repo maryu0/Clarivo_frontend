@@ -1,3 +1,11 @@
+export interface User {
+  userId: string;
+  name: string;
+  email: string;
+  preferredLanguage: string;
+  createdAt: string;
+}
+
 export interface Patient {
   id: string;
   name: string;
