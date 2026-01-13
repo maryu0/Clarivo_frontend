@@ -1,5 +1,7 @@
 // API base configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const API_BASE_URL =
+  (import.meta as any).env?.VITE_API_URL || "http://localhost:5000";
 
 // Get auth token from localStorage
 function getAuthToken() {
@@ -54,27 +56,28 @@ export async function checkHealth() {
 // Session API
 export const sessionAPI = {
   // Get all sessions
-  getAll: async () => {
-    return apiRequest("/api/sessions");
+  getAll: async (params?: {
+    limit?: number;
+    skip?: number;
+    language?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.skip) queryParams.append("skip", params.skip.toString());
+    if (params?.language) queryParams.append("language", params.language);
+
+    const query = queryParams.toString();
+    return apiRequest(`/api/sessions${query ? "?" + query : ""}`);
+  },
+
+  // Get session statistics
+  getStats: async () => {
+    return apiRequest("/api/sessions/stats");
   },
 
   // Get session by ID
   getById: async (id: string) => {
     return apiRequest(`/api/sessions/${id}`);
-  },
-
-  // Create new session
-  create: async (sessionData: {
-    language: string;
-    score?: number;
-    duration?: string;
-    wordsAttempted?: number;
-    wordsCorrect?: number;
-  }) => {
-    return apiRequest("/api/sessions", {
-      method: "POST",
-      body: JSON.stringify(sessionData),
-    });
   },
 
   // Delete session
@@ -85,18 +88,22 @@ export const sessionAPI = {
   },
 };
 
-// Speech API (prepared for Azure integration)
+// Speech API (placeholder for Azure Speech Services)
 export const speechAPI = {
   // Analyze speech audio
-  analyze: async (audioData: any, language: string = "en-US") => {
+  analyze: async (
+    audioData: string,
+    targetPhrase: string,
+    language = "en-US"
+  ) => {
     return apiRequest("/api/speech/analyze", {
       method: "POST",
-      body: JSON.stringify({ audioData, language }),
+      body: JSON.stringify({ audioData, targetPhrase, language }),
     });
   },
 
   // Text-to-speech synthesis
-  synthesize: async (text: string, language: string = "en-US") => {
+  synthesize: async (text: string, language = "en-US") => {
     return apiRequest("/api/speech/synthesize", {
       method: "POST",
       body: JSON.stringify({ text, language }),

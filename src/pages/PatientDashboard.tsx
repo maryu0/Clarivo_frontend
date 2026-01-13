@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { TopBar } from "../components/TopBar";
 import { TrendChart } from "../components/TrendChart";
-import { wpmTrendData } from "../utils/mockData";
+import { sessionAPI } from "../utils/api";
 import {
   TrendingUp,
   Target,
@@ -13,10 +13,113 @@ import {
   Award,
   Gauge,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+
+interface SessionData {
+  sessionId: string;
+  targetPhrase: string;
+  language: string;
+  accuracy: number;
+  fluency: number;
+  prosody: number;
+  finalScore: number;
+  wpm: number;
+  createdAt: string;
+}
+
+interface StatsData {
+  totalSessions: number;
+  bestScore: number;
+  averageScore: number;
+  averageWpm: number;
+  streak: number;
+}
+
 export function PatientDashboard() {
   const navigate = useNavigate();
+  const [sessions, setSessions] = useState<SessionData[]>([]);
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch sessions and stats on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [sessionsRes, statsRes] = await Promise.all([
+          sessionAPI.getAll({ limit: 10 }),
+          sessionAPI.getStats(),
+        ]);
+
+        if (sessionsRes.success) {
+          setSessions(sessionsRes.data || []);
+        }
+        if (statsRes.success) {
+          setStats(statsRes.data);
+        }
+      } catch (err: any) {
+        console.error("Error fetching dashboard data:", err);
+        setError(err.message || "Failed to load dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Calculate current metrics from sessions
+  const currentMetrics = {
+    fluencyPacing:
+      sessions.length > 0
+        ? Math.round(
+            sessions.slice(0, 5).reduce((sum, s) => sum + s.fluency, 0) /
+              Math.min(sessions.length, 5)
+          )
+        : 0,
+    vowelClarity:
+      sessions.length > 0
+        ? Math.round(
+            sessions.slice(0, 5).reduce((sum, s) => sum + s.accuracy, 0) /
+              Math.min(sessions.length, 5)
+          )
+        : 0,
+  };
+
+  // Generate WPM trend data from sessions
+  const wpmTrendData = sessions
+    .slice(0, 7)
+    .reverse()
+    .map((s, i) => ({
+      session: `Session ${i + 1}`,
+      wpm: s.wpm || 0,
+    }));
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      return `Today, ${date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`;
+    } else if (diffDays === 1) {
+      return `Yesterday, ${date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`;
+    } else {
+      return date.toLocaleDateString([], { month: "short", day: "numeric" });
+    }
+  };
+
   const recommendations = [
     {
       icon: Volume2,
@@ -33,44 +136,8 @@ export function PatientDashboard() {
       path: "/practice?lang=en-US&focus=fluency",
     },
   ];
-  const recentSessions = [
-    {
-      id: 1,
-      date: "Today, 10:30 AM",
-      language: "Hindi",
-      phrase: "नमस्ते, आप कैसे हैं?",
-      score: 82,
-    },
-    {
-      id: 2,
-      date: "Yesterday, 4:15 PM",
-      language: "Hindi",
-      phrase: "मेरा नाम राहुल है",
-      score: 76,
-    },
-    {
-      id: 3,
-      date: "Oct 24, 2:00 PM",
-      language: "English",
-      phrase: "Hello, how are you?",
-      score: 90,
-    },
-    {
-      id: 4,
-      date: "Oct 23, 11:00 AM",
-      language: "Spanish",
-      phrase: "Hola, ¿cómo estás?",
-      score: 85,
-    },
-  ];
 
-  // Current metrics data
-  const currentMetrics = {
-    fluencyPacing: 78,
-    vowelClarity: 82,
-  };
-
-  // Top 5 frequently fumbled words
+  // Top 5 frequently fumbled words (placeholder - would need word-level tracking)
   const fumbledWords = [
     { word: "rhythm", attempts: 12, errors: 8 },
     { word: "pronunciation", attempts: 15, errors: 9 },
@@ -78,6 +145,22 @@ export function PatientDashboard() {
     { word: "comfortable", attempts: 14, errors: 7 },
     { word: "literally", attempts: 8, errors: 5 },
   ];
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
+        <TopBar variant="therapist" title="My Dashboard" />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="w-12 h-12 text-primary animate-spin" />
+            <p className="text-gray-600">Loading your dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
       <TopBar
@@ -85,12 +168,14 @@ export function PatientDashboard() {
         title="My Dashboard"
         rightAction={
           <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
-              <Award className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-primary-dark">
-                5 Day Streak
-              </span>
-            </div>
+            {stats && stats.streak > 0 && (
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
+                <Award className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-primary-dark">
+                  {stats.streak} Day Streak
+                </span>
+              </div>
+            )}
             <button
               onClick={() => navigate("/")}
               className="px-4 py-2 bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-300 border border-red-400/50 hover:border-red-500"
@@ -102,6 +187,13 @@ export function PatientDashboard() {
       />
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 space-y-8">
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+            <p className="text-red-700">{error}</p>
+          </div>
+        )}
+
         {/* Section 1: Reassurance & Summary */}
         <div className="bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-8 text-white shadow-lg relative overflow-hidden animate-in fade-in slide-in-from-top duration-500">
           <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20" />
@@ -111,25 +203,33 @@ export function PatientDashboard() {
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-6 h-6 text-secondary" />
               <h1 className="text-3xl md:text-4xl font-bold">
-                Your pronunciation is improving
+                {stats && stats.averageScore >= 70
+                  ? "Your pronunciation is improving!"
+                  : "Keep practicing to improve!"}
               </h1>
             </div>
 
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6 mt-6">
               <div className="flex items-baseline gap-3">
-                <div className="text-6xl md:text-7xl font-bold">78%</div>
+                <div className="text-6xl md:text-7xl font-bold">
+                  {stats ? Math.round(stats.averageScore) : 0}%
+                </div>
                 <div className="text-xl text-white/80">Overall Progress</div>
               </div>
 
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/20 rounded-full backdrop-blur-sm">
-                <TrendingUp className="w-5 h-5 text-secondary" />
-                <span className="font-medium">Up from last week</span>
-              </div>
+              {stats && stats.bestScore > 0 && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/20 rounded-full backdrop-blur-sm">
+                  <TrendingUp className="w-5 h-5 text-secondary" />
+                  <span className="font-medium">Best: {stats.bestScore}%</span>
+                </div>
+              )}
             </div>
 
             <p className="mt-6 text-lg text-white/90 max-w-2xl">
-              You've completed 18 practice sessions. Keep going—consistency
-              matters more than perfection.
+              You've completed {stats?.totalSessions || 0} practice sessions.
+              {stats && stats.totalSessions > 0
+                ? " Keep going—consistency matters more than perfection."
+                : " Start practicing to track your progress!"}
             </p>
           </div>
         </div>
@@ -144,20 +244,34 @@ export function PatientDashboard() {
               Measured in words per minute during practice
             </p>
           </div>
-          <div
-            className="h-64 w-full"
-            role="img"
-            aria-label="Speech fluency trend chart showing words per minute over the last 7 practice sessions"
-          >
-            <TrendChart data={wpmTrendData} dataKey="wpm" />
-          </div>
+          {wpmTrendData.length > 0 ? (
+            <div
+              className="h-64 w-full"
+              role="img"
+              aria-label="Speech fluency trend chart showing words per minute over the last 7 practice sessions"
+            >
+              <TrendChart data={wpmTrendData} dataKey="wpm" />
+            </div>
+          ) : (
+            <div className="h-64 w-full flex items-center justify-center bg-gray-50 rounded-lg">
+              <p className="text-gray-500">
+                Complete practice sessions to see your trend
+              </p>
+            </div>
+          )}
           <div className="mt-6 pt-4 border-t border-gray-100">
             <p className="text-sm text-gray-700 text-center leading-relaxed">
-              Your speaking speed is becoming more natural with practice. You've
-              progressed from{" "}
-              <span className="font-semibold text-primary">72 WPM</span> to{" "}
-              <span className="font-semibold text-primary">92 WPM</span> over
-              your recent sessions.
+              {wpmTrendData.length > 1 ? (
+                <>
+                  Your speaking speed is becoming more natural with practice.
+                  Average:{" "}
+                  <span className="font-semibold text-primary">
+                    {Math.round(stats?.averageWpm || 0)} WPM
+                  </span>
+                </>
+              ) : (
+                "Practice more sessions to see your speaking speed trends."
+              )}
             </p>
           </div>
         </div>
@@ -371,54 +485,69 @@ export function PatientDashboard() {
           </div>
 
           <div className="space-y-4">
-            {recentSessions.map((session) => (
-              <div
-                key={session.id}
-                className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      <span className="text-sm text-gray-500">
-                        {session.date}
-                      </span>
-                      <span className="w-1 h-1 rounded-full bg-gray-300" />
-                      <span className="text-sm font-medium text-primary">
-                        {session.language}
-                      </span>
-                    </div>
-                    <p className="text-base font-medium text-gray-900 truncate">
-                      {session.phrase}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-4 flex-shrink-0">
-                    <div
-                      className={`
-                      flex flex-col items-center justify-center w-16 h-16 rounded-xl
-                      ${
-                        session.score >= 80
-                          ? "bg-success/10 text-success"
-                          : "bg-warning/10 text-warning"
-                      }
-                    `}
-                    >
-                      <span className="text-xl font-bold">
-                        {session.score}%
-                      </span>
+            {sessions.length > 0 ? (
+              sessions.slice(0, 5).map((session) => (
+                <div
+                  key={session.sessionId}
+                  className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <span className="text-sm text-gray-500">
+                          {formatDate(session.createdAt)}
+                        </span>
+                        <span className="w-1 h-1 rounded-full bg-gray-300" />
+                        <span className="text-sm font-medium text-primary">
+                          {session.language}
+                        </span>
+                      </div>
+                      <p className="text-base font-medium text-gray-900 truncate">
+                        {session.targetPhrase}
+                      </p>
                     </div>
 
-                    <button
-                      className="p-3 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                      title="Play audio"
-                    >
-                      <Play className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-4 flex-shrink-0">
+                      <div
+                        className={`
+                        flex flex-col items-center justify-center w-16 h-16 rounded-xl
+                        ${
+                          session.finalScore >= 80
+                            ? "bg-success/10 text-success"
+                            : "bg-warning/10 text-warning"
+                        }
+                      `}
+                      >
+                        <span className="text-xl font-bold">
+                          {session.finalScore}%
+                        </span>
+                      </div>
+
+                      <button
+                        className="p-3 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        title="View details"
+                        onClick={() =>
+                          navigate(`/session/${session.sessionId}`)
+                        }
+                      >
+                        <Play className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center">
+                <p className="text-gray-500 mb-4">No practice sessions yet</p>
+                <button
+                  onClick={() => navigate("/practice")}
+                  className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition-colors"
+                >
+                  Start Your First Session
+                </button>
               </div>
-            ))}
+            )}
           </div>
         </div>
 

@@ -21,7 +21,7 @@ export function Home() {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   // Redirect to setup if no user
@@ -68,6 +68,12 @@ export function Home() {
                 <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
                   <UserIcon className="w-5 h-5 text-white" />
                 </div>
+                <Link
+                  to="/patient-dashboard"
+                  className="flex items-center gap-2 bg-primary text-white font-medium hover:bg-primary-dark transition-colors px-4 py-2 rounded-lg"
+                >
+                  <span>Dashboard</span>
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors px-3 py-2"
